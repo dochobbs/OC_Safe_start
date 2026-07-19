@@ -1,77 +1,102 @@
-# Hosting safe-start for the one-line install
+# Publishing safe-start
 
-**Status: DONE (2026-07-18).** Hosted at the public repo
-`https://github.com/dochobbs/OC_Safe_start`; the one-liner is live:
+**Distribution repository:** `https://github.com/dochobbs/OC_Safe_start`
 
-```bash
-curl -fsSL https://raw.githubusercontent.com/dochobbs/OC_Safe_start/main/install.sh | bash
-```
+**Release target:** `v1.1.0`. The version tag, not the mutable `main` branch, is
+the supported installation boundary. Do not announce the release as available
+until that public tag exists and every release gate below passes.
 
-The steps below are kept for reference (re-hosting, or moving to another
-account/domain). Source of truth stays in the private `offcall` repo — edit
-there, then copy to the public repo (see "Updating later").
-
-## How the installer finds the package
-
-`install.sh` looks for the skill in this order:
-1. `SAFE_START_SRC` env var (a local path) — used for local testing.
-2. `install.sh` sitting next to a `SKILL.md` (a local checkout).
-3. Otherwise it **`git clone`s** `SAFE_START_REPO` (default: the `REPLACE_ME`
-   placeholder) into a temp dir and installs from there.
-
-When a user runs `curl … | bash`, none of 1–2 apply — so path 3 must point at a
-real repo. That's the one thing to set up.
-
-## Setup (once)
-
-1. **Create a public GitHub repo** — e.g. `github.com/<you>/safe-start`.
-   Public so `git clone` / `curl` work without auth. It contains no secrets.
-
-2. **Put this package at the repo root.** The repo's top level must be the
-   *contents* of `skills/safe-start/` — so `install.sh`, `SKILL.md`, `hooks/`,
-   `install/`, `templates/`, `tests/`, `uninstall.sh`, `README.md` all sit at the
-   root (not nested under a `safe-start/` folder). The installer copies the repo
-   root into `~/.claude/skills/safe-start/`.
-
-   ```bash
-   # from this repo:
-   cp -R skills/safe-start/. /path/to/your/new/safe-start-repo/
-   cd /path/to/your/new/safe-start-repo
-   git init && git add -A && git commit -m "safe-start v1" && git branch -M main
-   git remote add origin git@github.com:<you>/safe-start.git   # SSH
-   git push -u origin main
-   ```
-
-3. **Set the default repo URL** in `install.sh` (line ~39): replace
-   `https://github.com/REPLACE_ME/safe-start.git` with your repo's clone URL.
-   (Use the **HTTPS** clone URL here — the *installer* runs on a stranger's
-   machine that won't have your SSH key. HTTPS clone of a public repo needs no
-   auth.) Commit and push that change too.
-
-4. **The one-liner** users paste (raw `install.sh` from GitHub):
-   ```bash
-   curl -fsSL https://raw.githubusercontent.com/dochobbs/OC_Safe_start/main/install.sh | bash
-   ```
-
-## Test it (on a clean machine or a fresh `HOME`)
+The canonical command for this release is:
 
 ```bash
-# simulate a clean install without touching your real ~/.claude:
-HOME=$(mktemp -d) bash -c 'curl -fsSL https://raw.githubusercontent.com/dochobbs/OC_Safe_start/main/install.sh | bash'
+curl -fsSL https://raw.githubusercontent.com/dochobbs/OC_Safe_start/v1.1.0/install.sh | bash
 ```
-Expect: "detection + hook self-test passed", "guards registered", the summary box.
 
-## Updating later
+Source of truth remains this `offcall` checkout. The public repository is the
+reviewed distribution copy.
 
-Change the skill here → copy to the repo → commit + push. Users re-run the same
-one-liner to update; the install is **idempotent** and preserves their other
-hooks, so re-running is always safe. Consider tagging releases (`v1`, `v2`) and
-pointing the raw URL at a tag if you want stability over `main`.
+## Version-pinning contract
 
-## Notes
+The bootstrap script above is fetched from `v1.1.0`, and its default payload
+fetch must resolve the same `v1.1.0` tag. Never fetch a pinned bootstrap and then
+silently install payload files from `main`.
 
-- Pairs with the **lesson** (`clinician-first-cli-session`), whose send-off runs
-  this installer. Until this is hosted, the lesson's send-off correctly says
-  "a permanent version is coming" instead of offering a dead link.
-- macOS only, by design (see the README).
-- Nothing in this package should ever contain real keys or PHI — it's public.
+Local development may use an explicit `SAFE_START_SRC` checkout. Release and
+stage-demo instructions must use the pinned public tag so the tested bytes and
+the installed bytes can be compared.
+
+## Public repository shape
+
+Copy the contents of `skills/safe-start/` to the public repository root. The
+root must contain `VERSION`, `install.sh`, `uninstall.sh`, `SKILL.md`, `hooks/`,
+`install/`, `templates/`, `tests/`, and user documentation. Do not include Git
+metadata, caches, local state, credentials, sensitive fixtures, or real patient
+data.
+
+The installer installs **safe-start only** into `~/.claude`: the coaching skill,
+Claude Code hooks, templates, and owned state. It does not install
+`clinician-first-cli-session` or add enforcement to Codex.
+
+## Release gates
+
+Treat the checklist below as the public distribution contract. The private
+source checkout also maintains the fuller security model used during review.
+Before creating or announcing the tag:
+
+1. Run detector, payload, lifecycle, and package-validation tests on the oldest
+   supported Apple Python and the current development Python.
+2. From the `offcall` source-repository root, verify the generated archives and
+   executable modes:
+
+   ```bash
+   python3 scripts/build_skill_archives.py --check
+   ```
+
+   This source-only builder is not part of the standalone public copy.
+3. Install into a fresh isolated home and confirm every expected hook is active,
+   state/config permissions are private, and the installed version is `1.1.0`.
+4. Exercise malformed/unwritable settings failures and verify the prior install
+   and settings remain intact with a nonzero exit and no success banner.
+5. Exercise uninstall success and forced deregistration failure. Never delete
+   hook scripts while owned registrations remain active.
+6. Copy the reviewed package to the public repository, create the `v1.1.0` tag,
+   push it, and compare that tag with the reviewed package.
+7. Run the pinned one-liner on a clean Mac, then run the documented uninstall:
+
+   ```bash
+   bash ~/.claude/skills/safe-start/uninstall.sh
+   ```
+
+8. Re-run the pinned install once to test the supported update/reinstall path.
+   Confirm unrelated Claude settings and hooks remain unchanged.
+
+Only then call the release live or use it in a stage demo.
+
+## Test without touching the real Claude home
+
+After the public tag exists:
+
+```bash
+HOME=$(mktemp -d) bash -c 'curl -fsSL https://raw.githubusercontent.com/dochobbs/OC_Safe_start/v1.1.0/install.sh | bash'
+```
+
+Inspect the isolated home rather than trusting the success banner alone. Verify
+the installed `VERSION`, hook registrations, file modes, and uninstall result.
+
+## Publish a later release
+
+Choose a new semantic version, update `VERSION` and every pinned bootstrap and
+payload reference together, repeat the full release gates, then publish a new
+immutable tag. Update user-facing install commands only after that tag has been
+verified. Never repoint an existing tag or advise users to install from `main`.
+
+## Security notes
+
+- A public tag is executable code. Review the exact tag before telling users to
+  pipe it to a shell; a tag is versioned, but an unsigned tag does not eliminate
+  maintainer-account compromise.
+- `.gitignore`, prompt regexes, and advisory hooks do not make PHI safe. Use only
+  synthetic or appropriately de-identified data in an agent workspace.
+- Keep real or re-identifiable source data in an organization-approved encrypted
+  system outside the workspace and model context.
+- macOS is the supported v1 platform.

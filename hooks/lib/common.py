@@ -1,9 +1,10 @@
 """Shared helpers for safe-start hooks: stdin parsing, git context, decisions.
 
-Fail-open contract: every hook wraps its work so that ANY error results in the
-action being ALLOWED. A bug in a safety guard must never block or destroy a
-user's work — that would be a worse outcome than the guard being absent. Errors
-are appended to ~/.claude/safe-start/errors.log for later diagnosis.
+Fail-open contract: every hook wraps its work so that an unexpected error
+results in the action being ALLOWED. Deliberate prompt-policy rejections are the
+one exception: high-confidence credentials and structured patient identifiers
+are rejected locally before Claude receives the prompt. Errors are appended to
+~/.claude/safe-start/errors.log for later diagnosis.
 """
 
 from __future__ import annotations
@@ -86,6 +87,17 @@ def ask(reason: str) -> None:
   sys.exit(0)
 
 
+def block_prompt(reason: str) -> None:
+  """Reject a UserPromptSubmit payload without returning sensitive content.
+
+  UserPromptSubmit uses Claude Code's top-level ``decision`` schema. A block
+  prevents the submitted prompt from entering the model context and shows the
+  safe, generic reason to the user.
+  """
+  print(json.dumps({"decision": "block", "reason": reason}))
+  sys.exit(0)
+
+
 def allow() -> None:
   """Allow the action silently."""
   sys.exit(0)
@@ -96,38 +108,6 @@ def context(text: str) -> None:
   if text:
     sys.stdout.write(text)
   sys.exit(0)
-
-
-def _session_file(session_id: str) -> str:
-  sid = session_id or "global"
-  safe = "".join(c if (c.isalnum() or c in "-_") else "_" for c in sid)[:64]
-  return os.path.join(LOG_DIR, "seen-%s.json" % safe)
-
-
-def seen_this_session(session_id: str, signature: str) -> bool:
-  """Record a warning signature; return True if we've already warned it here.
-
-  Lets a hook warn ONCE per session about a given category (e.g. an MRN in a
-  prompt) instead of nagging on every repeat — repeated flags on the same
-  made-up test data just train alert fatigue, so the real warning stops landing.
-  Fails open (returns False → warn).
-  """
-  path = _session_file(session_id)
-  try:
-    with open(path) as fh:
-      sigs = set(json.load(fh).get("sigs", []))
-  except Exception:
-    sigs = set()
-  if signature in sigs:
-    return True
-  sigs.add(signature)
-  try:
-    os.makedirs(LOG_DIR, mode=0o700, exist_ok=True)
-    with _open_private(path) as fh:
-      json.dump({"sigs": sorted(sigs)}, fh)
-  except Exception:
-    pass
-  return False
 
 
 def guard(entry, where: str) -> None:

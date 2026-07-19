@@ -1,16 +1,22 @@
-# safe-start starter .gitignore — keeps secrets and private data out of Git.
+# safe-start starter .gitignore — reduces accidental Git exposure.
+# Ignoring a file does not stop an agent or local process from reading it.
+# Never place real or re-identifiable patient data in this workspace.
 
 # Secrets & credentials
 .env
 .env.*
+!.env.example
+!.env.sample
+!.env.template
 *.key
 *.pem
 *.p12
 *.pfx
 credentials.json
 secrets.*
+.secrets/
 
-# Real patient data lives here and is NEVER tracked by Git
+# Legacy defensive exclusion only. Never put PHI here: ignored != inaccessible.
 /private/
 
 # OS & editor junk
