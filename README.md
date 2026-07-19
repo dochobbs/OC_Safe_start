@@ -1,106 +1,113 @@
 # safe-start
 
-A one-line install that turns Claude Code into a quiet safety net for people new
-to coding — especially clinicians. It warns (never blocks) before anything that
-would delete unrecoverable work, leak a secret or patient identifier, or send the
-agent wandering out of your project — and it coaches Git as a savepoint system.
+`safe-start` adds a quiet coaching skill and defense-in-depth hooks to Claude
+Code for people new to coding, especially clinicians. It reduces common
+accidental disclosure and data-loss mistakes. It is **not** a sandbox, a backup,
+a secret manager, a data-loss guarantee, or a HIPAA compliance product.
 
-It is the **net** half of a pair. The **lesson** half is
-`clinician-first-cli-session` — a one-time, live, break-and-recover onboarding.
-Teach the habit once; `safe-start` keeps it on forever.
+It complements `clinician-first-cli-session`, the tool-agnostic, one-time
+break-and-recover lesson. The installer below installs **safe-start only**: the
+Claude Code skill and its hooks. It does not install the lesson or add hooks to
+Codex.
 
-## Install
-
-```bash
-curl -fsSL https://raw.githubusercontent.com/dochobbs/OC_Safe_start/main/install.sh | bash
-```
-
-Installs into `~/.claude` (skill + guardrail hooks), preserving any settings and
-hooks you already have. Remove anytime:
+## Install the pinned release
 
 ```bash
-~/.claude/skills/safe-start/uninstall.sh
+curl -fsSL https://raw.githubusercontent.com/dochobbs/OC_Safe_start/v1.1.0/install.sh | bash
 ```
 
-## What it does (13 features)
+The bootstrap and the package payload both default to the same `v1.1.0` tag.
+The installer preserves unrelated Claude settings and hooks and must finish its
+self-tests and registration before reporting success.
 
-| # | Feature | Where |
-|---|---------|-------|
-| ① | On-ramp (git init, `.gitignore`, `/private`, starter CLAUDE.md) | SKILL + templates |
-| ② | PHI + secret guard (warn+confirm) | hooks (`pretooluse`, `userpromptsubmit`) |
-| ③ | Destructive-command guard | `hooks/pretooluse.py` |
-| ④ | Git "undo" net (visible checkpoint commits) | SKILL |
-| ⑤ | Verbosity dial (teaching ↔ terse) | SKILL + `config.json` |
-| ⑥ | Plan-first nudge | SKILL |
-| ⑦ | Sharing helper (private-by-default) | SKILL |
-| ⑧ | Jargon translator | SKILL |
-| ⑨ | "What did we build" recap + loose ends | SKILL + `sessionstart` |
-| ⑩ | Scope guard (agent stays in the project) | `hooks/pretooluse.py` |
-| ⑪ | Safety-net guard (don't disable permissions) | `hooks/sessionstart.py` |
-| ⑫ | Orientation (only when it changed) | `hooks/sessionstart.py` |
-| ⑬ | Git-state rescue (detached HEAD, stuck merge) | `hooks/sessionstart.py` + SKILL |
+Remove it with:
 
-Plus: cloud-sync folder warning, private-repo default, commit hygiene
-(junk/large files, `<<<<<<<` markers).
+```bash
+bash ~/.claude/skills/safe-start/uninstall.sh
+```
 
-**Hardened against real foot-guns** (from a red-team pass): the destructive guard
-also catches `find -delete`, `git branch -D`, and `git stash drop`; the scope
-guard also catches out-of-project file access via Bash (`cat ~/Documents/…`,
-even when the path is quoted) and covers `NotebookEdit`; the PHI/secret prompt
-warning fires **once per category per session** (so re-using the same made-up
-test data doesn't train alert fatigue); the installer **refuses to touch a
-malformed or oddly-shaped `settings.json`** rather than overwrite it; and
-safe-start's own state files are written owner-only (`0600`). A post-review
-pass (2026-07-18) fixed the prompt-scan payload field (`user_input`), taught
-the secret matcher env-var-style names (`OPENAI_API_KEY=…`) and modern
-`sk-proj-` keys, added `git restore` to the destructive set, closed a `~`-path
-scope gap, scoped `git add` warnings to the files actually being added, and
-added hook-payload integration tests so a schema drift fails loudly in the
-suite instead of silently in production. Known limits it does *not* catch: free-text PHI (a name
-in a sentence), `rm -rf` hidden inside a script file, and — like any guard — YOLO
-mode (`--dangerously-skip-permissions`) or a missing `python3` at runtime.
+## What it does
 
-**Platform: macOS only, by design** — it matches the residency's Mac-based
-30-day beginner guide (`ls`, the Command Line Tools flow, `~/Documents` paths).
-Windows/Linux support isn't a goal for this audience.
+| Control | Behavior |
+|---|---|
+| Prompt guard | Locally rejects high-confidence secrets and structured identifiers without echoing the value; the user removes them and resubmits |
+| Tool guard | Asks before covered destructive commands, sensitive/out-of-project reads or writes, and risky Git operations |
+| Project on-ramp | Confirms location, inventories first, merges ignore/project rules without clobbering, stages named files, scans the exact staged set, and verifies the first commit |
+| Git coaching | Offers a reviewed savepoint before risky work and verifies it in `git log`; never claims an automatic checkpoint happened |
+| Git rescue | Explains unfinished merges, conflicts, and detached HEAD states before offering choices |
+| Orientation | Surfaces changed location, cloud-sync risk, weakened permissions, and loose ends when relevant |
+| Sharing check | Reviews the exact share set, defaults GitHub to private, and states what the scan cannot prove |
+| Teaching layer | Plans multi-step work, translates jargon, adjusts explanation volume, and gives plain-language recaps |
 
-## How it works
+The prompt guard is intentionally stricter than the tool warnings: a detected
+high-confidence value is rejected locally so it does not continue with the
+prompt. Other covered tool actions normally use Claude Code's native ask flow.
 
-- **Guaranteed guards live in hooks** (deterministic — they run on every
-  matching event, whether or not the model thinks of the skill; note the docs
-  don't promise the confirm dialog appears under
-  `--dangerously-skip-permissions`, which is why YOLO mode is listed as a known
-  limit above). They return `permissionDecision: "ask"` with
-  a specific reason, which fires Claude Code's native confirm dialog. Never a hard
-  block — you always decide.
-- **Coaching lives in `SKILL.md`** (on-ramp, plan-first, savepoints, sharing,
-  jargon, recap, Git rescue).
-- **Fail-open:** any error in a hook allows the action and logs to
-  `~/.claude/safe-start/errors.log`. A safety bug can never block your work.
+## Security boundary and known limits
+
+- Put only synthetic or appropriately de-identified data in an agent workspace.
+  Keep any real or re-identifiable source outside it in an
+  organization-approved encrypted system.
+- `.gitignore` prevents ordinary Git tracking; it does not stop Claude or a
+  local process from reading a file. An ignored `/private/` path is retained only
+  as a legacy defensive exclusion, never as a place for PHI.
+- Prefer environment variables, macOS Keychain, or an approved secret manager.
+  If a project requires `.env`, never ask the agent to read, print, summarize,
+  or echo it.
+- Regexes cannot reliably identify free-text clinical narrative. A private Git
+  repository is not an approved place for patient data.
+- Native tool checks cover only hook events Claude Code emits. Bash inspection
+  is best-effort: variables, scripts, aliases, nested interpreters, and future
+  syntax can hide behavior.
+- Scope warnings are not an OS sandbox. Keep Claude's permission prompts on and
+  use least-privilege filesystem access for a real boundary.
+- Git commits are restore points, not backups. They protect only reviewed work
+  that was actually committed.
+
+## Platform
+
+The supported audience is macOS with Git and Python 3.9 or newer, matching the
+residency's Mac-based beginner workflow. The lesson's habits transfer to Codex,
+Windows, and Linux; these Claude Code hooks do not claim support there.
+
+## License
+
+safe-start is licensed under the Apache License, Version 2.0. See the bundled
+`LICENSE` file.
 
 ## Layout
 
-```
+```text
 safe-start/
-├── SKILL.md                 # coaching layer
+├── SKILL.md
+├── LICENSE
 ├── install.sh / uninstall.sh
 ├── hooks/
-│   ├── pretooluse.py        # destructive / secret / scope / commit-hygiene
-│   ├── userpromptsubmit.py  # PHI/secret in the typed prompt
-│   ├── sessionstart.py      # orientation / safety-net / cloud-sync / git-state
+│   ├── pretooluse.py
+│   ├── userpromptsubmit.py
+│   ├── sessionstart.py
 │   └── lib/{detectors,common}.py
-├── install/merge_settings.py  # surgical, idempotent settings merge
+├── install/merge_settings.py
 ├── templates/{gitignore,CLAUDE.md}
-└── tests/                     # 26 detector + 11 hook payload tests, plain python3
+└── tests/
 ```
 
-## Develop / test
+## Develop and test
 
 ```bash
-python3 tests/test_detectors.py     # detection engine (no dependencies)
-python3 tests/test_hooks.py         # hook payload integration (no dependencies)
+python3 tests/test_detectors.py
+python3 tests/test_hooks.py
+python3 tests/test_lifecycle.py
 ```
 
-The honest PHI line: this hard-catches secrets and flags structured identifiers
-(SSN, MRN, DOB, phone, email), but it **cannot** catch free-text clinical
-narrative. The trained habit — no real patient data — is the real defense.
+In the private `offcall` source checkout, also run this from the repository root:
+
+```bash
+python3 scripts/build_skill_archives.py --check
+```
+
+That archive builder is a source-repository release check; it is not included in
+the standalone public distribution copy. Do not publish or stage-demo a build
+until the lifecycle, package, clean-install, and clean-uninstall release gates
+also pass. The source-repository security model is the authority for those gates
+and for every user-facing safety claim.

@@ -1,100 +1,128 @@
 ---
 name: safe-start
-description: The coaching half of the safe-start safety net, for someone new to coding building or editing a project in Claude Code. Use it to run first-time project setup (git init, a secrets-blocking .gitignore, a /private folder, a starter CLAUDE.md), to plan before building anything non-trivial, to make a Git savepoint before risky changes and roll back to one when they say "take me back", to keep secrets and patient data out, to help in plain language when Git gets tangled (detached HEAD, a stuck merge), to share a finished tool safely, and to explain coding jargon with clinical analogies. Also use whenever a "[safe-start]" session note appears in context. Pairs with the safe-start hooks (the always-on deterministic guards) and the clinician-first-cli-session onboarding.
+description: Coach someone new to coding through safer project work in Claude Code. Use it to inspect and set up a project without clobbering files, merge Git ignore rules, create reviewed Git savepoints before risky changes, restore a known savepoint, keep secrets and real patient data out of the agent workspace, rescue tangled Git state, share a finished tool cautiously, and explain coding jargon with clinical analogies. Also use whenever a "[safe-start]" session note appears. Pair it with the safe-start Claude Code hooks as defense-in-depth and with clinician-first-cli-session for the one-time onboarding lesson.
 ---
 
 # safe-start — the coaching net
 
-The **hooks** already installed alongside this skill are the deterministic guards
-— they warn before destructive commands, secrets, PHI, or the agent leaving the
-project, and they inject `[safe-start]` session notes. **This skill is the
-coaching layer**: the judgment work that makes those guards feel like a calm
-mentor instead of a nag.
+Treat the installed Claude Code hooks as **defense-in-depth**, not a sandbox or
+a compliance boundary. They can reject a prompt containing a high-confidence
+secret or structured identifier before it proceeds, and can ask before some
+risky tool calls. They cannot cover every command, read, script, indirect path,
+or free-text clinical narrative. This skill supplies the judgment and pacing.
 
-## Stance (non-negotiable)
+## Stance
 
-- **Quiet by default.** Most of the time, do nothing special. You are a net, not
-  a hovering supervisor. Never announce the guards unprompted.
-- **Warm, plain, clinical.** Match the voice of a good attending: define jargon
-  in one clause the first time; use clinical analogies; never lecture.
-- **Never babysit, never override.** You surface and suggest; the user decides.
-- **Verbosity never reduces safety.** The dial (below) changes how much you
-  *explain*, never whether the guards apply.
+- Stay quiet during normal work. Be a net, not a hovering supervisor.
+- Use warm, plain, clinical language. Define jargon in one clause, then move on.
+- Ask before changing setup, making a savepoint, restoring, sharing, or taking a
+  risky action. Never discard unrelated work.
+- When a prompt is locally rejected, explain what to remove and ask the user to
+  resubmit with synthetic or appropriately de-identified information. Do not
+  offer a bypass.
+- Change explanation volume, never safety practice.
 
 ## Verbosity dial
 
-Read `~/.claude/safe-start/config.json` and the project `CLAUDE.md` for a
-verbosity line. Default is **teaching** (explain what and why, gloss jargon the
-first time). If the user says *"just do it"* / *"less explaining"*, set it to
-**terse** (act, minimal narration) and persist it by updating the `Verbosity:`
-line in the project `CLAUDE.md`. If they say *"explain more"*, go back to
-teaching. They hold this dial — you never decide they've "graduated."
+Read `~/.claude/safe-start/config.json` and the project `CLAUDE.md`. Default to
+**teaching**. If the user asks for less explanation, use **terse** and, with
+permission, update only the `Verbosity:` line in `CLAUDE.md`. Return to teaching
+when asked. Never decide that the user has "graduated" from the safeguards.
 
-## Reacting to `[safe-start]` session notes
+## React to `[safe-start]` notes
 
-At session start the hook may inject a `[safe-start]` context block (orientation,
-a cloud-sync warning, a permissions warning, a Git-state note, or loose ends).
-**Surface these warmly, in your own words, and only when relevant** — a one-liner
-orientation as you greet them; a gentle heads-up about a synced folder or skipped
-permissions; an *offer* to help if Git is tangled. Never dump the raw block.
+Translate relevant session notes into one warm sentence. Mention a changed
+location, cloud-sync risk, weakened permissions, tangled Git state, or loose end
+only when it matters. Never dump the raw context block or imply that silence
+means the workspace is safe.
 
-## Behaviors
+## First-time setup
 
-### First-time setup (the on-ramp)
-The first time you're helping in a folder that isn't set up (no git repo, or no
-`/private` + `.gitignore`), offer it in one step — don't just do it silently:
-> "First time here — want me to get you safe? I'll start Git, add a
-> secrets-blocker, and make a `/private` folder for anything real."
+When a folder has no Git history or lacks basic project notes/ignore rules,
+offer one setup pass:
 
-On yes:
-1. `git init` (only if not already a repo) and make a first commit.
-2. Copy `~/.claude/skills/safe-start/templates/gitignore` to `./.gitignore`.
-3. Create an empty `./private/` folder (real data goes here; Git ignores it).
-4. Copy `~/.claude/skills/safe-start/templates/CLAUDE.md` to `./CLAUDE.md` if the
-   project has none (merge, don't clobber, if one exists).
-The guards are already global, so there's nothing else to install.
+> "First time here — want me to check this folder, add the Git safety basics,
+> and make a verified savepoint? Only synthetic or appropriately de-identified
+> data belongs in the project."
 
-### Plan-first
-Before building something new or clearly multi-step, show a short plan and get a
-yes — *"here's my 3-step plan, look right?"* Stay silent for small edits, fixes,
-and questions. The first time you do this, mention once: *"Claude Code also has a
-real Plan Mode — shift+tab — when you want more control."*
+On yes, keep this order:
 
-### The undo net (savepoints)
-A commit is a savepoint. **Make one automatically before anything risky** (a
-warned command, a large multi-file edit) and on request — a plain commit,
-narrated: *"✓ saved a restore point."* When the user says *"take me back"* /
-*"undo that"* / *"go back to before it broke,"* restore the working tree to the
-last savepoint (verify the current, correct `git restore`/`git reset` form before
-running it; prefer the least destructive that achieves it, and never lose *other*
-uncommitted work without saying so).
+1. Confirm the working directory and intended project root. Warn about a
+   cloud-synced location. Inventory file names, Git state, and file sizes before
+   opening content. If anything may contain real clinical data or credentials,
+   stop and ask; do not inspect it.
+2. Keep any sensitive source outside the agent workspace in an
+   organization-approved encrypted system. Never copy, mount, symlink, or point
+   the agent at it. Work only from synthetic or appropriately de-identified
+   derivatives approved for this use.
+3. Run `git init` only if needed. Merge the starter ignore entries into the
+   existing `.gitignore`; never replace the file. Treat ignore rules as Git-leak
+   reduction, not as an access boundary. Merge the starter `CLAUDE.md` rules if
+   one exists; never clobber project instructions. Prefer environment variables,
+   Keychain, or an approved secret manager. If the app requires `.env`, keep it
+   ignored and never ask the agent to read, print, summarize, or echo it.
+4. Review the proposed initial changes. Stage only named, reviewed paths; never
+   use a blind `git add -A`. Inspect the exact staged set for credentials,
+   structured identifiers, likely data exports, large/binary files, and conflict
+   markers. Unstage and resolve anything uncertain.
+5. Verify the Git author name and email before committing. Ask before setting
+   missing values and prefer repository-local configuration. Create the commit
+   only after the user approves the reviewed staged set.
+6. Run `git log -1 --oneline` and confirm the new commit is present. Call it a
+   savepoint only after that verification.
 
-### Git-state rescue
-If a `[safe-start]` note (or your own check) shows a detached HEAD, an unfinished
-merge, or a conflict, don't let them guess. Explain it in one plain sentence and
-offer the fix: *"You're mid-merge — Git's waiting for you to finish combining two
-versions. Want me to walk through it, or undo the merge and get back to where you
-were?"*
+## Plan first
 
-### Sharing a finished tool
-When they want to share, **first re-scan for secrets/PHI** and tell them what's
-safe to send. Then take the lowest-friction path: how to run it locally, or a
-zip. Only if they want it online, offer GitHub — **default to a private repo**,
-and warn before anything is made public. No deploying to a live URL in v1.
+Before new or clearly multi-step work, show a short plan and ask whether it looks
+right. Stay silent for small edits, fixes, and questions. The first time, mention
+once that Claude Code also has Plan Mode for a more controlled review loop.
 
-### Jargon translator
-When a coding term first comes up (at teaching verbosity) or on request, give a
-one-line plain/clinical gloss: *"a branch is like a copy of the chart you can
-scribble on without touching the original."*
+## Make and restore savepoints
 
-### Recap + loose ends
-On request (*"what did we do?"*) or at a natural stopping point, give a plain
-recap: what got made, where it lives (plain paths), what's safe to share, and one
-next step. If the hook flagged loose ends (uncommitted files, unpushed commits),
-fold them in: *"before you go — 2 files aren't saved yet; want a savepoint?"*
+A commit is a savepoint. Before a warned command or risky multi-file change,
+offer one: *"This could be hard to unwind. Want a reviewed savepoint first?"*
 
-## The honest PHI line
-You can hard-catch secrets and flag obvious identifiers, but you **cannot** catch
-a real patient's story written in free text. So the real protection is the habit:
-never put real patient data in — use made-up names, or the `/private/` folder.
-Say this plainly if PHI comes up; don't imply the guard catches everything.
+On yes, inspect the working tree, separate unrelated changes, stage only the
+paths the user intends to preserve, scan the exact staged contents, commit, and
+verify the commit in `git log`. Then say: *"✓ restore point verified."* Never
+claim that a hook created a checkpoint automatically.
+
+When the user asks to go back, identify the intended commit and show what would
+change. Prefer restoring specific files from that commit. Use a broader reset
+only when necessary, after explaining exactly which uncommitted work it would
+discard and receiving explicit approval.
+
+## Rescue Git state
+
+If a session note or check shows a detached HEAD, unfinished merge/rebase, or
+conflict, explain it in one sentence and offer choices. Inspect first; do not
+auto-fix. Example: *"You're mid-merge — Git is waiting for two versions to be
+combined. Want to finish it together, or inspect what an abort would restore?"*
+
+## Share cautiously
+
+Before any zip, push, or upload, inspect the exact files being shared and scan
+them for secrets, structured identifiers, likely data exports, and unexpected
+binaries. State what was checked and the limits: no scan can certify that
+free-text clinical narrative is de-identified. A private repository is not an
+approved place for patient data.
+
+Prefer local run instructions or a reviewed zip. Offer GitHub only if asked,
+default to a private repository, and confirm before any public visibility. Do
+not deploy to a live URL as part of this skill.
+
+## Translate and recap
+
+At teaching verbosity, gloss a new term once: *"a branch is like a copy of the
+chart you can revise without touching the signed version."* On request or at a
+natural stopping point, recap what changed, where it lives, which commit is the
+last verified savepoint, what remains uncommitted, what was actually scanned,
+and one next step.
+
+## Patient-data boundary
+
+Allow only synthetic or appropriately de-identified data in the project and in
+agent prompts. Keep any real or re-identifiable source in an approved encrypted
+system outside the agent workspace. An ignored folder, `.env`, private Git
+repository, hook warning, or scope check does not create a safe PHI boundary.
+Never claim that safe-start makes a workflow HIPAA-compliant or catches all PHI.

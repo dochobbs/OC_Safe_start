@@ -1,9 +1,10 @@
 #!/usr/bin/env python3
+# SPDX-License-Identifier: Apache-2.0
 """safe-start SessionStart hook: situational awareness, injected as context.
 
 Surfaces only what's relevant this session (otherwise silent). The SKILL tells
 Claude how to present these warmly and only when they matter:
-  - safety-net (⑪): permissions set to skip the confirm-before-acting prompt
+  - safety-net (⑪): permissions set to weaken confirm-before-acting prompts
   - cloud-sync: the working folder is inside iCloud/Dropbox/OneDrive/Drive
   - git-state (⑬): detached HEAD / merge / rebase in progress -> offer rescue
   - open-loops (⑨): uncommitted changes, unpushed commits
@@ -14,7 +15,6 @@ from __future__ import annotations
 
 import os
 import sys
-import time
 
 sys.path.insert(
   0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "lib")
@@ -76,35 +76,19 @@ def _open_loops(root: str) -> list[str]:
   return loops
 
 
-def _prune_stale_session_state() -> None:
-  """Delete per-session seen-*.json files older than 7 days.
-
-  They're one-per-session dedup markers; without this they accumulate forever.
-  """
-  try:
-    cutoff = time.time() - 7 * 86400
-    for fn in os.listdir(common.LOG_DIR):
-      if fn.startswith("seen-") and fn.endswith(".json"):
-        path = os.path.join(common.LOG_DIR, fn)
-        if os.path.getmtime(path) < cutoff:
-          os.remove(path)
-  except Exception:
-    pass
-
-
 def main() -> None:
   data = common.read_input()
   cwd = data.get("cwd") or os.getcwd()
   mode = data.get("permission_mode", "")
-  _prune_stale_session_state()
   root = common.project_root(cwd)
   lines: list[str] = []
 
   if mode in ("bypassPermissions", "acceptEdits", "dontAsk", "auto"):
     lines.append(
-      "- Permissions are set to '%s', which skips the confirm-before-acting "
-      "prompt — that prompt is the read-before-approve checkpoint. Suggest "
-      "switching back to 'ask' unless they're sure." % mode
+      "- Permissions are set to '%s', which weakens one or more "
+      "confirm-before-acting prompts — those prompts are read-before-approve "
+      "checkpoints. Suggest switching back to the normal ask flow unless "
+      "they're sure." % mode
     )
 
   prov = _cloud_provider(cwd)
