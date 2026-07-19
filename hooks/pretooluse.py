@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# SPDX-License-Identifier: Apache-2.0
 """safe-start PreToolUse guard.
 
 Fires before shell, file-read, and file-write tools. It returns Claude Code's

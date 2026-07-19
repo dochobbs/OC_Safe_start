@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# SPDX-License-Identifier: Apache-2.0
 """safe-start SessionStart hook: situational awareness, injected as context.
 
 Surfaces only what's relevant this session (otherwise silent). The SKILL tells

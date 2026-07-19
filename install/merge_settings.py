@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# SPDX-License-Identifier: Apache-2.0
 """Atomically add, remove, or verify safe-start's Claude Code hooks.
 
 The settings file is validated before it is changed, protected by an advisory

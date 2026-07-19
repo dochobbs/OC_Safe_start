@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# SPDX-License-Identifier: Apache-2.0
 """safe-start UserPromptSubmit guard.
 
 Scans the message the user just typed for secrets or structured PHI

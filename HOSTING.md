@@ -28,10 +28,10 @@ the installed bytes can be compared.
 ## Public repository shape
 
 Copy the contents of `skills/safe-start/` to the public repository root. The
-root must contain `VERSION`, `install.sh`, `uninstall.sh`, `SKILL.md`, `hooks/`,
-`install/`, `templates/`, `tests/`, and user documentation. Do not include Git
-metadata, caches, local state, credentials, sensitive fixtures, or real patient
-data.
+root must contain `LICENSE`, `VERSION`, `install.sh`, `uninstall.sh`,
+`SKILL.md`, `hooks/`, `install/`, `templates/`, `tests/`, and user
+documentation. Do not include Git metadata, caches, local state, credentials,
+sensitive fixtures, or real patient data.
 
 The installer installs **safe-start only** into `~/.claude`: the coaching skill,
 Claude Code hooks, templates, and owned state. It does not install

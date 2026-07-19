@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+# SPDX-License-Identifier: Apache-2.0
 # Install or update safe-start without exposing a half-installed safety net.
 #
 #   curl -fsSL <url>/install.sh | bash
@@ -176,6 +177,7 @@ if find "$STAGED_DEST" ! -type f ! -type d -print -quit | grep -q .; then
 fi
 
 REQUIRED_FILES=(
+  "LICENSE"
   "SKILL.md"
   "VERSION"
   "install.sh"

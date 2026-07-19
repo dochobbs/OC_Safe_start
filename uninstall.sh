@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+# SPDX-License-Identifier: Apache-2.0
 # Remove safe-start only after its owned hooks are verifiably deregistered.
 set -euo pipefail
 

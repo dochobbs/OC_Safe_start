@@ -118,6 +118,7 @@ def test_install_success_modes_and_direct_executable_uninstall():
     assert dest.is_dir()
     assert stat.S_IMODE(state_dir.stat().st_mode) == 0o700
     assert stat.S_IMODE(config.stat().st_mode) == 0o600
+    assert (dest / "LICENSE").is_file()
     assert os.access(dest / "uninstall.sh", os.X_OK)
 
     data = json.loads(_settings(home).read_text())

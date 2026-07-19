@@ -7,6 +7,8 @@ are rejected locally before Claude receives the prompt. Errors are appended to
 ~/.claude/safe-start/errors.log for later diagnosis.
 """
 
+# SPDX-License-Identifier: Apache-2.0
+
 from __future__ import annotations
 
 import json

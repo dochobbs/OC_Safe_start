@@ -70,11 +70,17 @@ The supported audience is macOS with Git and Python 3.9 or newer, matching the
 residency's Mac-based beginner workflow. The lesson's habits transfer to Codex,
 Windows, and Linux; these Claude Code hooks do not claim support there.
 
+## License
+
+safe-start is licensed under the Apache License, Version 2.0. See the bundled
+`LICENSE` file.
+
 ## Layout
 
 ```text
 safe-start/
 ├── SKILL.md
+├── LICENSE
 ├── install.sh / uninstall.sh
 ├── hooks/
 │   ├── pretooluse.py
