@@ -1,0 +1,27 @@
+# safe-start starter .gitignore — keeps secrets and private data out of Git.
+
+# Secrets & credentials
+.env
+.env.*
+*.key
+*.pem
+*.p12
+*.pfx
+credentials.json
+secrets.*
+
+# Real patient data lives here and is NEVER tracked by Git
+/private/
+
+# OS & editor junk
+.DS_Store
+Thumbs.db
+*.swp
+
+# Dependencies & build output
+node_modules/
+dist/
+build/
+__pycache__/
+.venv/
+venv/
