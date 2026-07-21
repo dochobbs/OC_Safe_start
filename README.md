@@ -26,6 +26,19 @@ Remove it with:
 bash ~/.claude/skills/safe-start/uninstall.sh
 ```
 
+## Install the onboarding lesson
+
+The lesson is a separate package. It adds the user-directed first-session skill
+and its on-demand references, but does not install hooks or change Claude
+settings:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/dochobbs/OC_Safe_start/v1.2.0/install-lesson.sh | bash
+```
+
+The pinned bootstrap verifies the published lesson archive checksum before
+replacing an existing lesson installation.
+
 ## What it does
 
 | Control | Behavior |
