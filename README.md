@@ -30,10 +30,12 @@ bash ~/.claude/skills/safe-start/uninstall.sh
 
 The lesson is a separate package. It adds the user-directed first-session skill
 and its on-demand references, but does not install hooks or change Claude
-settings:
+settings. Version 1.3.0 adds a first-class pause/return path: it can resume the
+same conversation or reconstruct a fresh-session return from a narrow read-only
+Git check, without replaying onboarding or restoring files without approval.
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/dochobbs/OC_Safe_start/v1.2.2/install-lesson.sh | bash
+curl -fsSL https://raw.githubusercontent.com/dochobbs/OC_Safe_start/v1.3.0/install-lesson.sh | bash
 ```
 
 The pinned bootstrap verifies the published lesson archive checksum before
@@ -43,7 +45,7 @@ Remove only the lesson with either command:
 
 ```bash
 bash ~/.claude/skills/clinician-first-cli-session/uninstall.sh
-curl -fsSL https://raw.githubusercontent.com/dochobbs/OC_Safe_start/v1.2.2/uninstall-lesson.sh | bash
+curl -fsSL https://raw.githubusercontent.com/dochobbs/OC_Safe_start/v1.3.0/uninstall-lesson.sh | bash
 ```
 
 ## What it does

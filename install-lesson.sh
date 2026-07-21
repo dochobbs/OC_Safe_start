@@ -5,7 +5,7 @@
 set -euo pipefail
 umask 077
 
-DEFAULT_REF="v1.2.2"
+DEFAULT_REF="v1.3.0"
 PACKAGE_NAME="clinician-first-cli-session"
 ARCHIVE_NAME="$PACKAGE_NAME.zip"
 CLAUDE_DIR="${HOME:?HOME must be set}/.claude"
@@ -125,11 +125,13 @@ REQUIRED_FILES=(
   "SKILL.md"
   "VERSION"
   "uninstall.sh"
+  "scripts/inspect_recovery.py"
   "references/basic-use-and-safety.md"
   "references/git-and-github-framework.md"
   "references/models-and-speed.md"
   "references/permissions-and-autonomy.md"
   "references/sessions-and-context.md"
+  "tests/test_recovery.py"
 )
 for relative_path in "${REQUIRED_FILES[@]}"; do
   if [ ! -f "$STAGED_DEST/$relative_path" ] \
