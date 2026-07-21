@@ -5,7 +5,7 @@
 set -euo pipefail
 umask 077
 
-DEFAULT_REF="v1.3.0"
+DEFAULT_REF="v1.3.1"
 PACKAGE_NAME="clinician-first-cli-session"
 ARCHIVE_NAME="$PACKAGE_NAME.zip"
 CLAUDE_DIR="${HOME:?HOME must be set}/.claude"
@@ -131,6 +131,7 @@ REQUIRED_FILES=(
   "references/models-and-speed.md"
   "references/permissions-and-autonomy.md"
   "references/sessions-and-context.md"
+  "references/teaching-aids.md"
   "tests/test_recovery.py"
 )
 for relative_path in "${REQUIRED_FILES[@]}"; do
