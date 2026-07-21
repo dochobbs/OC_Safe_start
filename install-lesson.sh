@@ -5,7 +5,7 @@
 set -euo pipefail
 umask 077
 
-DEFAULT_REF="v1.2.1"
+DEFAULT_REF="v1.2.2"
 PACKAGE_NAME="clinician-first-cli-session"
 ARCHIVE_NAME="$PACKAGE_NAME.zip"
 CLAUDE_DIR="${HOME:?HOME must be set}/.claude"
@@ -124,6 +124,7 @@ fi
 REQUIRED_FILES=(
   "SKILL.md"
   "VERSION"
+  "uninstall.sh"
   "references/basic-use-and-safety.md"
   "references/git-and-github-framework.md"
   "references/models-and-speed.md"
@@ -166,3 +167,4 @@ COMMITTED=1
 say "  ✓ clinician-first CLI lesson v$PACKAGE_VERSION installed"
 say "    $DEST"
 say "    No hooks or Claude settings were changed."
+say "    Remove: bash $DEST/uninstall.sh"
