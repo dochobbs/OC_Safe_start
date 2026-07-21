@@ -5,7 +5,7 @@
 set -euo pipefail
 umask 077
 
-DEFAULT_REF="v1.2.0"
+DEFAULT_REF="v1.2.1"
 PACKAGE_NAME="clinician-first-cli-session"
 ARCHIVE_NAME="$PACKAGE_NAME.zip"
 CLAUDE_DIR="${HOME:?HOME must be set}/.claude"
@@ -83,7 +83,7 @@ else
     exit 1
   fi
   BASE_URL="${LESSON_BASE_URL:-https://raw.githubusercontent.com/dochobbs/OC_Safe_start/$REF}"
-  say "Fetching clinician-first CLI lesson $REF…"
+  say "Fetching clinician-first CLI lesson ${REF}..."
   curl -fsSL "$BASE_URL/$ARCHIVE_NAME" -o "$ARCHIVE"
   curl -fsSL "$BASE_URL/SHA256SUMS" -o "$CHECKSUMS"
 fi

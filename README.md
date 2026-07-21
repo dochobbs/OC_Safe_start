@@ -33,7 +33,7 @@ and its on-demand references, but does not install hooks or change Claude
 settings:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/dochobbs/OC_Safe_start/v1.2.0/install-lesson.sh | bash
+curl -fsSL https://raw.githubusercontent.com/dochobbs/OC_Safe_start/v1.2.1/install-lesson.sh | bash
 ```
 
 The pinned bootstrap verifies the published lesson archive checksum before
