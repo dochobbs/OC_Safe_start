@@ -5,7 +5,7 @@
 set -euo pipefail
 umask 077
 
-DEFAULT_REF="v1.3.1"
+DEFAULT_REF="v1.3.2"
 PACKAGE_NAME="clinician-first-cli-session"
 ARCHIVE_NAME="$PACKAGE_NAME.zip"
 CLAUDE_DIR="${HOME:?HOME must be set}/.claude"
@@ -126,12 +126,14 @@ REQUIRED_FILES=(
   "VERSION"
   "uninstall.sh"
   "scripts/inspect_recovery.py"
+  "scripts/restore_recovery.py"
   "references/basic-use-and-safety.md"
   "references/git-and-github-framework.md"
   "references/models-and-speed.md"
   "references/permissions-and-autonomy.md"
   "references/sessions-and-context.md"
   "references/teaching-aids.md"
+  "tests/test_contract.py"
   "tests/test_recovery.py"
 )
 for relative_path in "${REQUIRED_FILES[@]}"; do

@@ -44,9 +44,9 @@ jobs:
       - name: Verify a release tag matches VERSION
         if: github.ref_type == 'tag' && startsWith(github.ref_name, 'v')
         run: |
-          read -r package_version < VERSION
-          release_tag="v${package_version}"
-          test "${release_tag}" = "${GITHUB_REF_NAME}"
+          read -r safe_start_version < VERSION
+          lesson_version="$(unzip -p clinician-first-cli-session.zip clinician-first-cli-session/VERSION)"
+          test "v${safe_start_version}" = "${GITHUB_REF_NAME}" || test "v${lesson_version}" = "${GITHUB_REF_NAME}"
 
       - name: Smoke-test the stable bundle in an isolated home
         run: |
