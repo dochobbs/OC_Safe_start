@@ -2,6 +2,20 @@
 
 **Distribution repository:** `https://github.com/dochobbs/OC_Safe_start`
 
+## Stable starter bundle
+
+`bundle-v1.0.0` installs the already-published lesson `v1.3.1` and safe-start
+`v1.1.0` without changing either component tag:
+
+```bash
+/usr/bin/curl -fsSL https://raw.githubusercontent.com/dochobbs/OC_Safe_start/bundle-v1.0.0/install-all.sh | /bin/bash
+```
+
+The wrapper verifies the lesson archive before changing the user's installation
+and restores the previous lesson if safe-start fails. Tag the wrapper separately
+from component versions so a bundle release never mutates an existing package
+tag.
+
 **Release target:** `v1.1.0`. The version tag, not the mutable `main` branch, is
 the supported installation boundary. Do not announce the release as available
 until that public tag exists and every release gate below passes.

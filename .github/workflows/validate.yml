@@ -7,6 +7,7 @@ on:
       - main
     tags:
       - "v*"
+      - "bundle-v*"
 
 permissions:
   contents: read
@@ -24,7 +25,7 @@ jobs:
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
 
       - name: Validate shell syntax
-        run: bash -n install.sh uninstall.sh
+        run: bash -n install.sh uninstall.sh install-all.sh
 
       - name: Test with Apple Python
         run: |
@@ -41,8 +42,11 @@ jobs:
           env PYTHONDONTWRITEBYTECODE=1 python3 tests/test_lifecycle.py
 
       - name: Verify a release tag matches VERSION
-        if: github.ref_type == 'tag'
+        if: github.ref_type == 'tag' && startsWith(github.ref_name, 'v')
         run: |
           read -r package_version < VERSION
           release_tag="v${package_version}"
           test "${release_tag}" = "${GITHUB_REF_NAME}"
+
+      - name: Smoke-test the stable bundle in an isolated home
+        run: HOME="$RUNNER_TEMP/offcall-bundle-home" /bin/bash install-all.sh

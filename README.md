@@ -5,12 +5,24 @@ Code for people new to coding, especially clinicians. It reduces common
 accidental disclosure and data-loss mistakes. It is **not** a sandbox, a backup,
 a secret manager, a data-loss guarantee, or a HIPAA compliance product.
 
+## Install the lesson and safety net
+
+For a first-time Claude Code setup, install both stable components with one
+command:
+
+```bash
+/usr/bin/curl -fsSL https://raw.githubusercontent.com/dochobbs/OC_Safe_start/bundle-v1.0.0/install-all.sh | /bin/bash
+```
+
+The bundle pins the clinician-first lesson to `v1.3.1` and safe-start to
+`v1.1.0`. The packages remain separately installed and separately removable.
+
 It complements `clinician-first-cli-session`, the tool-agnostic, one-time
 break-and-recover lesson. The installer below installs **safe-start only**: the
 Claude Code skill and its hooks. It does not install the lesson or add hooks to
 Codex.
 
-## Install the pinned release
+## Install only safe-start
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/dochobbs/OC_Safe_start/v1.1.0/install.sh | bash
