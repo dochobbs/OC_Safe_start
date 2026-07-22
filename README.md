@@ -11,10 +11,10 @@ For a first-time Claude Code setup, install both stable components with one
 command:
 
 ```bash
-/usr/bin/curl -fsSL https://raw.githubusercontent.com/dochobbs/OC_Safe_start/bundle-v1.0.0/install-all.sh | /bin/bash
+/usr/bin/curl -fsSL https://raw.githubusercontent.com/dochobbs/OC_Safe_start/bundle-v1.0.1/install-all.sh | /bin/bash
 ```
 
-The bundle pins the clinician-first lesson to `v1.3.1` and safe-start to
+The `bundle-v1.0.1` release pins the clinician-first lesson to `v1.3.1` and safe-start to
 `v1.1.0`. The packages remain separately installed and separately removable.
 
 It complements `clinician-first-cli-session`, the tool-agnostic, one-time

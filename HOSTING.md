@@ -4,11 +4,11 @@
 
 ## Stable starter bundle
 
-`bundle-v1.0.0` installs the already-published lesson `v1.3.1` and safe-start
+`bundle-v1.0.1` installs the already-published lesson `v1.3.1` and safe-start
 `v1.1.0` without changing either component tag:
 
 ```bash
-/usr/bin/curl -fsSL https://raw.githubusercontent.com/dochobbs/OC_Safe_start/bundle-v1.0.0/install-all.sh | /bin/bash
+/usr/bin/curl -fsSL https://raw.githubusercontent.com/dochobbs/OC_Safe_start/bundle-v1.0.1/install-all.sh | /bin/bash
 ```
 
 The wrapper verifies the lesson archive before changing the user's installation

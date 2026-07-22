@@ -49,4 +49,6 @@ jobs:
           test "${release_tag}" = "${GITHUB_REF_NAME}"
 
       - name: Smoke-test the stable bundle in an isolated home
-        run: HOME="$RUNNER_TEMP/offcall-bundle-home" /bin/bash install-all.sh
+        run: |
+          mkdir -p "$RUNNER_TEMP/offcall-bundle-home"
+          HOME="$RUNNER_TEMP/offcall-bundle-home" /bin/bash install-all.sh
