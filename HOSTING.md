@@ -4,17 +4,17 @@
 
 ## Stable starter bundle
 
-`bundle-v1.0.2` installs the launch-tested lesson `v1.3.2` and safe-start
+`bundle-v1.0.3` installs the native Claude Code/Codex lesson `v1.3.3` and safe-start
 `v1.1.0` without changing either component tag:
 
 ```bash
-/usr/bin/curl -fsSL https://raw.githubusercontent.com/dochobbs/OC_Safe_start/bundle-v1.0.2/install-all.sh | /bin/bash
+/usr/bin/curl -fsSL https://raw.githubusercontent.com/dochobbs/OC_Safe_start/bundle-v1.0.3/install-all.sh | /bin/bash
 ```
 
-The wrapper verifies the lesson archive before changing the user's installation
-and restores the previous lesson if safe-start fails. Tag the wrapper separately
-from component versions so a bundle release never mutates an existing package
-tag.
+The wrapper verifies both deterministic archives, installs the lesson for
+Claude Code and Codex, and restores both previous lesson copies if safe-start
+fails. Safe-start remains Claude-only. Tag the wrapper separately from component
+versions so a bundle release never mutates an existing package tag.
 
 **Release target:** `v1.1.0`. The version tag, not the mutable `main` branch, is
 the supported installation boundary. Do not announce the release as available
@@ -47,9 +47,10 @@ root must contain `LICENSE`, `VERSION`, `install.sh`, `uninstall.sh`,
 documentation. Do not include Git metadata, caches, local state, credentials,
 sensitive fixtures, or real patient data.
 
-The installer installs **safe-start only** into `~/.claude`: the coaching skill,
-Claude Code hooks, templates, and owned state. It does not install
-`clinician-first-cli-session` or add enforcement to Codex.
+The safe-start-only installer installs into `~/.claude`: the coaching skill,
+Claude Code hooks, templates, and owned state. The unified and lesson-only
+installers place `clinician-first-cli-session` in both `~/.claude/skills` and
+`~/.agents/skills`; none add hook enforcement to Codex.
 
 ## Release gates
 

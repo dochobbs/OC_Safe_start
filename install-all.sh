@@ -10,19 +10,25 @@ unset PYTHONHOME PYTHONINSPECT PYTHONPATH PYTHONSTARTUP
 export PYTHONDONTWRITEBYTECODE=1
 export PYTHONNOUSERSITE=1
 
-BUNDLE_VERSION="1.0.2"
-LESSON_REF="v1.3.2"
+BUNDLE_VERSION="1.0.3"
+LESSON_REF="v1.3.3"
 SAFE_START_REF="v1.1.0"
 RAW_ROOT="https://raw.githubusercontent.com/dochobbs/OC_Safe_start"
 PACKAGE_NAME="clinician-first-cli-session"
 
 CLAUDE_LINK="${HOME:?HOME must be set}/.claude"
+CODEX_LINK="$HOME/.agents"
 CLAUDE_DIR=""
 SKILLS_DIR=""
 LESSON_DEST=""
+CODEX_DIR=""
+CODEX_SKILLS_DIR=""
+CODEX_LESSON_DEST=""
 WORK_ROOT=""
 BACKUP_ROOT=""
+CODEX_BACKUP_ROOT=""
 OLD_LESSON_SAVED=0
+OLD_CODEX_LESSON_SAVED=0
 NEW_LESSON_INSTALLED=0
 COMMITTED=0
 PATHS_PREPARED=0
@@ -37,19 +43,29 @@ managed_roots_are_safe() {
     && [ ! -L "$SKILLS_DIR" ] \
     && [ "$SKILLS_DIR" = "$CLAUDE_DIR/skills" ] \
     && [ "$(CDPATH= cd -- "$CLAUDE_DIR" 2>/dev/null && pwd -P)" = "$CLAUDE_DIR" ] \
-    && [ "$(CDPATH= cd -- "$SKILLS_DIR" 2>/dev/null && pwd -P)" = "$SKILLS_DIR" ]
+    && [ "$(CDPATH= cd -- "$SKILLS_DIR" 2>/dev/null && pwd -P)" = "$SKILLS_DIR" ] \
+    && [ -n "$CODEX_DIR" ] \
+    && [ -d "$CODEX_DIR" ] \
+    && [ ! -L "$CODEX_DIR" ] \
+    && [ -d "$CODEX_SKILLS_DIR" ] \
+    && [ ! -L "$CODEX_SKILLS_DIR" ] \
+    && [ "$CODEX_SKILLS_DIR" = "$CODEX_DIR/skills" ] \
+    && [ "$(CDPATH= cd -- "$CODEX_DIR" 2>/dev/null && pwd -P)" = "$CODEX_DIR" ] \
+    && [ "$(CDPATH= cd -- "$CODEX_SKILLS_DIR" 2>/dev/null && pwd -P)" = "$CODEX_SKILLS_DIR" ]
 }
 
 lesson_tree_is_owned() {
-  [ -d "$LESSON_DEST" ] \
-    && [ ! -L "$LESSON_DEST" ] \
-    && [ "${LESSON_DEST%/*}" = "$SKILLS_DIR" ] \
-    && [ -f "$LESSON_DEST/SKILL.md" ] \
-    && [ ! -L "$LESSON_DEST/SKILL.md" ] \
-    && [ -f "$LESSON_DEST/VERSION" ] \
-    && [ ! -L "$LESSON_DEST/VERSION" ] \
-    && [ -f "$LESSON_DEST/uninstall.sh" ] \
-    && [ ! -L "$LESSON_DEST/uninstall.sh" ]
+  local dest="$1"
+  local skills="$2"
+  [ -d "$dest" ] \
+    && [ ! -L "$dest" ] \
+    && [ "${dest%/*}" = "$skills" ] \
+    && [ -f "$dest/SKILL.md" ] \
+    && [ ! -L "$dest/SKILL.md" ] \
+    && [ -f "$dest/VERSION" ] \
+    && [ ! -L "$dest/VERSION" ] \
+    && [ -f "$dest/uninstall.sh" ] \
+    && [ ! -L "$dest/uninstall.sh" ]
 }
 
 restore_lesson() {
@@ -60,10 +76,19 @@ restore_lesson() {
   fi
 
   if [ "$NEW_LESSON_INSTALLED" -eq 1 ] && [ -e "$LESSON_DEST" ]; then
-    if lesson_tree_is_owned; then
+    if lesson_tree_is_owned "$LESSON_DEST" "$SKILLS_DIR"; then
       rm -rf -- "$LESSON_DEST"
     else
       say "  ✗ The new lesson path changed; it was preserved for inspection."
+      failed=1
+    fi
+  fi
+
+  if [ "$NEW_LESSON_INSTALLED" -eq 1 ] && [ -e "$CODEX_LESSON_DEST" ]; then
+    if lesson_tree_is_owned "$CODEX_LESSON_DEST" "$CODEX_SKILLS_DIR"; then
+      rm -rf -- "$CODEX_LESSON_DEST"
+    else
+      say "  ✗ The new Codex lesson path changed; it was preserved for inspection."
       failed=1
     fi
   fi
@@ -82,6 +107,20 @@ restore_lesson() {
       failed=1
     fi
   fi
+  if [ "$OLD_CODEX_LESSON_SAVED" -eq 1 ]; then
+    if [ "$failed" -eq 0 ] \
+      && [ ! -e "$CODEX_LESSON_DEST" ] \
+      && [ -d "$CODEX_BACKUP_ROOT/$PACKAGE_NAME" ] \
+      && [ ! -L "$CODEX_BACKUP_ROOT/$PACKAGE_NAME" ]; then
+      mv -- "$CODEX_BACKUP_ROOT/$PACKAGE_NAME" "$CODEX_LESSON_DEST"
+      OLD_CODEX_LESSON_SAVED=0
+      say "  ✓ restored the previous Codex lesson installation"
+    else
+      say "  ✗ The previous Codex lesson remains preserved at"
+      say "    $CODEX_BACKUP_ROOT/$PACKAGE_NAME"
+      failed=1
+    fi
+  fi
   return "$failed"
 }
 
@@ -94,6 +133,7 @@ cleanup() {
     if ! restore_lesson; then
       status=1
       BACKUP_ROOT=""
+      CODEX_BACKUP_ROOT=""
     fi
   fi
 
@@ -102,6 +142,9 @@ cleanup() {
   fi
   if [ -n "$BACKUP_ROOT" ] && [ -d "$BACKUP_ROOT" ]; then
     rm -rf -- "$BACKUP_ROOT"
+  fi
+  if [ -n "$CODEX_BACKUP_ROOT" ] && [ -d "$CODEX_BACKUP_ROOT" ]; then
+    rm -rf -- "$CODEX_BACKUP_ROOT"
   fi
   exit "$status"
 }
@@ -143,6 +186,42 @@ prepare_paths() {
   if [ -L "$LESSON_DEST" ] \
     || { [ -e "$LESSON_DEST" ] && [ ! -d "$LESSON_DEST" ]; }; then
     say "  ✗ $LESSON_DEST must be a real directory; refusing to replace it."
+    return 1
+  fi
+
+  if [ -L "$CODEX_LINK" ]; then
+    if [ ! -d "$CODEX_LINK" ]; then
+      say "  ✗ $CODEX_LINK must point to a real directory."
+      return 1
+    fi
+  elif [ -e "$CODEX_LINK" ] && [ ! -d "$CODEX_LINK" ]; then
+    say "  ✗ $CODEX_LINK must be a directory."
+    return 1
+  elif [ ! -e "$CODEX_LINK" ]; then
+    mkdir -- "$CODEX_LINK"
+  fi
+
+  logical_skills="$CODEX_LINK/skills"
+  if [ -L "$logical_skills" ]; then
+    say "  ✗ $logical_skills must be a real directory, not a link."
+    return 1
+  elif [ -e "$logical_skills" ] && [ ! -d "$logical_skills" ]; then
+    say "  ✗ $logical_skills must be a directory."
+    return 1
+  elif [ ! -e "$logical_skills" ]; then
+    mkdir -- "$logical_skills"
+  fi
+
+  CODEX_DIR="$(CDPATH= cd -- "$CODEX_LINK" && pwd -P)"
+  CODEX_SKILLS_DIR="$(CDPATH= cd -- "$logical_skills" && pwd -P)"
+  if [ "$CODEX_SKILLS_DIR" != "$CODEX_DIR/skills" ]; then
+    say "  ✗ $logical_skills resolves outside the Codex skill directory."
+    return 1
+  fi
+  CODEX_LESSON_DEST="$CODEX_SKILLS_DIR/$PACKAGE_NAME"
+  if [ -L "$CODEX_LESSON_DEST" ] \
+    || { [ -e "$CODEX_LESSON_DEST" ] && [ ! -d "$CODEX_LESSON_DEST" ]; }; then
+    say "  ✗ $CODEX_LESSON_DEST must be a real directory; refusing to replace it."
     return 1
   fi
   PATHS_PREPARED=1
@@ -206,9 +285,14 @@ if ! prepare_paths; then
   exit 1
 fi
 BACKUP_ROOT="$(mktemp -d "$SKILLS_DIR/.offcall-bundle.backup.XXXXXX")"
+CODEX_BACKUP_ROOT="$(mktemp -d "$CODEX_SKILLS_DIR/.offcall-bundle.backup.XXXXXX")"
 if [ -d "$LESSON_DEST" ]; then
   mv -- "$LESSON_DEST" "$BACKUP_ROOT/$PACKAGE_NAME"
   OLD_LESSON_SAVED=1
+fi
+if [ -d "$CODEX_LESSON_DEST" ]; then
+  mv -- "$CODEX_LESSON_DEST" "$CODEX_BACKUP_ROOT/$PACKAGE_NAME"
+  OLD_CODEX_LESSON_SAVED=1
 fi
 
 if ! LESSON_ARCHIVE="$LESSON_ARCHIVE" \
@@ -236,7 +320,9 @@ fi
 
 COMMITTED=1
 say ""
-say "  ✓ Offcall is ready for Claude Code"
-say "    Lesson:    clinician-first-cli-session $LESSON_REF"
-say "    Safety net: safe-start $SAFE_START_REF"
-say "    Restart Claude Code to load both skills."
+say "  ✓ Offcall is ready for Claude Code and Codex"
+say "    Lesson:    clinician-first-cli-session $LESSON_REF (both tools)"
+say "    Safety net: safe-start $SAFE_START_REF (Claude Code only)"
+say "    Claude Code: /clinician-first-cli-session"
+say '    Codex:      $clinician-first-cli-session'
+say "    Restart either tool if the lesson does not appear immediately."

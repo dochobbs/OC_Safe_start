@@ -1,25 +1,40 @@
 #!/usr/bin/env bash
 # SPDX-License-Identifier: Apache-2.0
-# Install or update the clinician-first CLI lesson without changing Claude
-# settings or installing hooks.
+# Install or update the clinician-first lesson for Claude Code and Codex.
 set -euo pipefail
 umask 077
 
-DEFAULT_REF="v1.3.2"
+DEFAULT_REF="v1.3.3"
 PACKAGE_NAME="clinician-first-cli-session"
 ARCHIVE_NAME="$PACKAGE_NAME.zip"
-CLAUDE_DIR="${HOME:?HOME must be set}/.claude"
-SKILLS_DIR="$CLAUDE_DIR/skills"
-DEST="$SKILLS_DIR/$PACKAGE_NAME"
+TARGET_MODE="${LESSON_TARGETS:-both}"
 
 WORK_ROOT=""
-STAGE_ROOT=""
-BACKUP_ROOT=""
-OLD_INSTALL_SAVED=0
-NEW_INSTALL_PLACED=0
+EXTRACT_ROOT=""
 COMMITTED=0
+PRESERVE_BACKUPS=0
+PREPARED_SKILLS=""
+TARGET_LABELS=()
+TARGET_SKILLS=()
+TARGET_DESTS=()
+TARGET_STAGES=()
+TARGET_BACKUPS=()
+TARGET_OLD_SAVED=()
+TARGET_NEW_PLACED=()
 
 say() { printf '%s\n' "$*"; }
+
+lesson_tree_is_owned() {
+  local dest="$1"
+  [ -d "$dest" ] \
+    && [ ! -L "$dest" ] \
+    && [ -f "$dest/SKILL.md" ] \
+    && [ ! -L "$dest/SKILL.md" ] \
+    && [ -f "$dest/VERSION" ] \
+    && [ ! -L "$dest/VERSION" ] \
+    && [ -f "$dest/uninstall.sh" ] \
+    && [ ! -L "$dest/uninstall.sh" ]
+}
 
 cleanup() {
   status=$?
@@ -27,29 +42,75 @@ cleanup() {
   set +e
 
   if [ "$COMMITTED" -eq 0 ]; then
-    if [ "$NEW_INSTALL_PLACED" -eq 1 ] && [ -d "$DEST" ]; then
-      rm -rf -- "$DEST"
-    fi
-    if [ "$OLD_INSTALL_SAVED" -eq 1 ] \
-      && [ -d "$BACKUP_ROOT/$PACKAGE_NAME" ]; then
-      if mv -- "$BACKUP_ROOT/$PACKAGE_NAME" "$DEST"; then
-        say "  ✓ restored the previous lesson installation"
-      else
-        status=1
-        say "  ✗ restore failed; the prior install remains at"
-        say "    $BACKUP_ROOT/$PACKAGE_NAME"
-        BACKUP_ROOT=""
+    for index in "${!TARGET_DESTS[@]}"; do
+      dest="${TARGET_DESTS[$index]}"
+      backup="${TARGET_BACKUPS[$index]:-}"
+      if [ "${TARGET_NEW_PLACED[$index]:-0}" -eq 1 ] && [ -e "$dest" ]; then
+        if lesson_tree_is_owned "$dest"; then
+          rm -rf -- "$dest"
+        else
+          say "  ✗ ${TARGET_LABELS[$index]} rollback stopped because the new lesson path changed."
+          status=1
+          PRESERVE_BACKUPS=1
+        fi
       fi
-    fi
+      if [ "${TARGET_OLD_SAVED[$index]:-0}" -eq 1 ]; then
+        if [ ! -e "$dest" ] \
+          && [ -d "$backup/$PACKAGE_NAME" ] \
+          && [ ! -L "$backup/$PACKAGE_NAME" ]; then
+          if mv -- "$backup/$PACKAGE_NAME" "$dest"; then
+            say "  ✓ restored the previous ${TARGET_LABELS[$index]} lesson"
+          else
+            status=1
+            PRESERVE_BACKUPS=1
+          fi
+        else
+          status=1
+          PRESERVE_BACKUPS=1
+        fi
+      fi
+    done
   fi
 
   [ -z "$WORK_ROOT" ] || rm -rf -- "$WORK_ROOT"
-  [ -z "$STAGE_ROOT" ] || rm -rf -- "$STAGE_ROOT"
-  [ -z "$BACKUP_ROOT" ] || rm -rf -- "$BACKUP_ROOT"
+  [ -z "$EXTRACT_ROOT" ] || rm -rf -- "$EXTRACT_ROOT"
+  for stage in "${TARGET_STAGES[@]}"; do
+    [ -z "$stage" ] || rm -rf -- "$stage"
+  done
+  if [ "$PRESERVE_BACKUPS" -eq 0 ]; then
+    for backup in "${TARGET_BACKUPS[@]}"; do
+      [ -z "$backup" ] || rm -rf -- "$backup"
+    done
+  else
+    for backup in "${TARGET_BACKUPS[@]}"; do
+      if [ -n "$backup" ] && [ -d "$backup" ]; then
+        say "    Previous package backup preserved at $backup"
+      fi
+    done
+  fi
   exit "$status"
 }
 
 trap cleanup EXIT HUP INT TERM
+
+case "$TARGET_MODE" in
+  both)
+    TARGET_LABELS=("Claude Code" "Codex")
+    TARGET_SKILLS=("${HOME:?HOME must be set}/.claude/skills" "$HOME/.agents/skills")
+    ;;
+  claude)
+    TARGET_LABELS=("Claude Code")
+    TARGET_SKILLS=("${HOME:?HOME must be set}/.claude/skills")
+    ;;
+  codex)
+    TARGET_LABELS=("Codex")
+    TARGET_SKILLS=("${HOME:?HOME must be set}/.agents/skills")
+    ;;
+  *)
+    say "  ✗ LESSON_TARGETS must be claude, codex, or both."
+    exit 1
+    ;;
+esac
 
 for command_name in unzip shasum; do
   if ! command -v "$command_name" >/dev/null 2>&1; then
@@ -107,16 +168,15 @@ if unzip -Z1 "$ARCHIVE" | awk '
   exit 1
 fi
 
-mkdir -p -- "$SKILLS_DIR"
-STAGE_ROOT="$(mktemp -d "$SKILLS_DIR/.lesson.stage.XXXXXX")"
-unzip -q "$ARCHIVE" -d "$STAGE_ROOT"
-STAGED_DEST="$STAGE_ROOT/$PACKAGE_NAME"
+EXTRACT_ROOT="$(mktemp -d)"
+unzip -q "$ARCHIVE" -d "$EXTRACT_ROOT"
+STAGED_SOURCE="$EXTRACT_ROOT/$PACKAGE_NAME"
 
-if [ ! -d "$STAGED_DEST" ] || [ -L "$STAGED_DEST" ]; then
+if [ ! -d "$STAGED_SOURCE" ] || [ -L "$STAGED_SOURCE" ]; then
   say "  ✗ Lesson archive is missing its package directory."
   exit 1
 fi
-if find "$STAGED_DEST" ! -type f ! -type d -print -quit | grep -q .; then
+if find "$STAGED_SOURCE" ! -type f ! -type d -print -quit | grep -q .; then
   say "  ✗ Lesson package may contain only regular files and directories."
   exit 1
 fi
@@ -124,6 +184,7 @@ fi
 REQUIRED_FILES=(
   "SKILL.md"
   "VERSION"
+  "agents/openai.yaml"
   "uninstall.sh"
   "scripts/inspect_recovery.py"
   "scripts/restore_recovery.py"
@@ -133,18 +194,19 @@ REQUIRED_FILES=(
   "references/permissions-and-autonomy.md"
   "references/sessions-and-context.md"
   "references/teaching-aids.md"
+  "references/tool-controls.md"
   "tests/test_contract.py"
   "tests/test_recovery.py"
 )
 for relative_path in "${REQUIRED_FILES[@]}"; do
-  if [ ! -f "$STAGED_DEST/$relative_path" ] \
-    || [ -L "$STAGED_DEST/$relative_path" ]; then
+  if [ ! -f "$STAGED_SOURCE/$relative_path" ] \
+    || [ -L "$STAGED_SOURCE/$relative_path" ]; then
     say "  ✗ Lesson package is missing $relative_path."
     exit 1
   fi
 done
 
-PACKAGE_VERSION="$(tr -d '\r\n' < "$STAGED_DEST/VERSION")"
+PACKAGE_VERSION="$(tr -d '\r\n' < "$STAGED_SOURCE/VERSION")"
 if [[ ! "$PACKAGE_VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
   say "  ✗ Lesson VERSION is not a semantic version."
   exit 1
@@ -155,21 +217,66 @@ if [[ "$REF" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]] \
   exit 1
 fi
 
-if [ -L "$DEST" ] || { [ -e "$DEST" ] && [ ! -d "$DEST" ]; }; then
-  say "  ✗ $DEST must be a real directory; refusing to replace it."
-  exit 1
-fi
+for index in "${!TARGET_SKILLS[@]}"; do
+  logical_skills="${TARGET_SKILLS[$index]}"
+  root_link="${logical_skills%/skills}"
+  if [ -L "$root_link" ]; then
+    if [ ! -d "$root_link" ]; then
+      say "  ✗ $root_link must point to a real directory."
+      exit 1
+    fi
+  elif [ -e "$root_link" ] && [ ! -d "$root_link" ]; then
+    say "  ✗ $root_link must be a directory."
+    exit 1
+  elif [ ! -e "$root_link" ]; then
+    mkdir -- "$root_link"
+  fi
+  if [ -L "$logical_skills" ]; then
+    say "  ✗ $logical_skills must be a real directory, not a link."
+    exit 1
+  elif [ -e "$logical_skills" ] && [ ! -d "$logical_skills" ]; then
+    say "  ✗ $logical_skills must be a directory."
+    exit 1
+  elif [ ! -e "$logical_skills" ]; then
+    mkdir -- "$logical_skills"
+  fi
+  root_dir="$(CDPATH= cd -- "$root_link" && pwd -P)"
+  skills_dir="$(CDPATH= cd -- "$logical_skills" && pwd -P)"
+  if [ "$skills_dir" != "$root_dir/skills" ]; then
+    say "  ✗ $logical_skills resolves outside its tool directory."
+    exit 1
+  fi
+  TARGET_SKILLS[$index]="$skills_dir"
+  dest="$skills_dir/$PACKAGE_NAME"
+  if [ -L "$dest" ] || { [ -e "$dest" ] && [ ! -d "$dest" ]; }; then
+    say "  ✗ $dest must be a real directory; refusing to replace it."
+    exit 1
+  fi
+  TARGET_DESTS[$index]="$dest"
+  TARGET_STAGES[$index]="$(mktemp -d "$skills_dir/.lesson.stage.XXXXXX")"
+  TARGET_BACKUPS[$index]="$(mktemp -d "$skills_dir/.lesson.backup.XXXXXX")"
+  TARGET_OLD_SAVED[$index]=0
+  TARGET_NEW_PLACED[$index]=0
+  cp -R -- "$STAGED_SOURCE" "${TARGET_STAGES[$index]}/$PACKAGE_NAME"
+done
 
-BACKUP_ROOT="$(mktemp -d "$SKILLS_DIR/.lesson.backup.XXXXXX")"
-if [ -d "$DEST" ]; then
-  mv -- "$DEST" "$BACKUP_ROOT/$PACKAGE_NAME"
-  OLD_INSTALL_SAVED=1
-fi
-mv -- "$STAGED_DEST" "$DEST"
-NEW_INSTALL_PLACED=1
+for index in "${!TARGET_DESTS[@]}"; do
+  dest="${TARGET_DESTS[$index]}"
+  backup="${TARGET_BACKUPS[$index]}"
+  if [ -d "$dest" ]; then
+    mv -- "$dest" "$backup/$PACKAGE_NAME"
+    TARGET_OLD_SAVED[$index]=1
+  fi
+  mv -- "${TARGET_STAGES[$index]}/$PACKAGE_NAME" "$dest"
+  TARGET_NEW_PLACED[$index]=1
+done
+
 COMMITTED=1
-
 say "  ✓ clinician-first CLI lesson v$PACKAGE_VERSION installed"
-say "    $DEST"
-say "    No hooks or Claude settings were changed."
-say "    Remove: bash $DEST/uninstall.sh"
+for index in "${!TARGET_DESTS[@]}"; do
+  say "    ${TARGET_LABELS[$index]}: ${TARGET_DESTS[$index]}"
+done
+say "    Claude Code: /clinician-first-cli-session"
+say '    Codex:      $clinician-first-cli-session'
+say "    No hooks or tool settings were changed."
+say "    Remove both: bash ${TARGET_DESTS[0]}/uninstall.sh"

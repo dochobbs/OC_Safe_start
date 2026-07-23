@@ -5,17 +5,23 @@ Code for people new to coding, especially clinicians. It reduces common
 accidental disclosure and data-loss mistakes. It is **not** a sandbox, a backup,
 a secret manager, a data-loss guarantee, or a HIPAA compliance product.
 
-## Install the lesson and safety net
+## Install for Claude Code and Codex
 
-For a first-time Claude Code setup, install both stable components with one
-command:
+Install the lesson natively for Claude Code and Codex, plus the Claude-only
+safe-start net, with one command:
 
 ```bash
-/usr/bin/curl -fsSL https://raw.githubusercontent.com/dochobbs/OC_Safe_start/bundle-v1.0.2/install-all.sh | /bin/bash
+/usr/bin/curl -fsSL https://raw.githubusercontent.com/dochobbs/OC_Safe_start/bundle-v1.0.3/install-all.sh | /bin/bash
 ```
 
-The `bundle-v1.0.2` release pins the clinician-first lesson to `v1.3.2` and safe-start to
-`v1.1.0`. The packages remain separately installed and separately removable.
+The `bundle-v1.0.3` release pins the clinician-first lesson to `v1.3.3` and
+safe-start to `v1.1.0`. The lesson installs into `~/.claude/skills` and
+`~/.agents/skills`; safe-start and its hooks install only into Claude Code.
+
+```text
+Claude Code: /clinician-first-cli-session
+Codex:      $clinician-first-cli-session
+```
 
 It complements `clinician-first-cli-session`, the tool-agnostic, one-time
 break-and-recover lesson. The installer below installs **safe-start only**: the
@@ -41,25 +47,23 @@ bash ~/.claude/skills/safe-start/uninstall.sh
 ## Install the onboarding lesson
 
 The lesson is a separate package. It adds the user-directed first-session skill
-and its on-demand references, but does not install hooks or change Claude
-settings. Version 1.3.2 keeps the first-class pause/return path and adds the
-integrated user-turn contract: the user chooses build, learn, or explore before
-file work; preview requests are hard gates; beginner actions stay one at a time;
-and pushback ends the drill without pressure. Recovery uses a narrow read-only
-Git check and never restores a file without approval plus a fresh safety check.
+and its on-demand references, but does not install hooks or change either
+tool's settings. Version 1.3.3 installs the same lesson natively for Claude Code
+and Codex, includes Codex UI metadata and controls, and keeps the first-class
+pause/return and one-action approval contract.
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/dochobbs/OC_Safe_start/v1.3.2/install-lesson.sh | bash
+curl -fsSL https://raw.githubusercontent.com/dochobbs/OC_Safe_start/v1.3.3/install-lesson.sh | bash
 ```
 
 The pinned bootstrap verifies the published lesson archive checksum before
 replacing an existing lesson installation.
 
-Remove only the lesson with either command:
+Remove the lesson from both tools with either command:
 
 ```bash
 bash ~/.claude/skills/clinician-first-cli-session/uninstall.sh
-curl -fsSL https://raw.githubusercontent.com/dochobbs/OC_Safe_start/v1.3.2/uninstall-lesson.sh | bash
+curl -fsSL https://raw.githubusercontent.com/dochobbs/OC_Safe_start/v1.3.3/uninstall-lesson.sh | bash
 ```
 
 ## What it does
@@ -103,8 +107,9 @@ prompt. Other covered tool actions normally use Claude Code's native ask flow.
 ## Platform
 
 The supported audience is macOS with Git and Python 3.9 or newer, matching the
-residency's Mac-based beginner workflow. The lesson's habits transfer to Codex,
-Windows, and Linux; these Claude Code hooks do not claim support there.
+residency's Mac-based beginner workflow. The lesson installs natively for Claude
+Code and Codex on that platform; the Claude Code hooks do not claim Codex,
+Windows, or Linux support.
 
 ## License
 

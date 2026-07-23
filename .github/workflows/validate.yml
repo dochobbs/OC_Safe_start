@@ -27,6 +27,9 @@ jobs:
       - name: Validate shell syntax
         run: bash -n install.sh uninstall.sh install-all.sh
 
+      - name: Verify deterministic archives
+        run: shasum -a 256 -c SHA256SUMS
+
       - name: Test with Apple Python
         run: |
           /usr/bin/python3 --version
@@ -52,3 +55,6 @@ jobs:
         run: |
           mkdir -p "$RUNNER_TEMP/offcall-bundle-home"
           HOME="$RUNNER_TEMP/offcall-bundle-home" /bin/bash install-all.sh
+          test -f "$RUNNER_TEMP/offcall-bundle-home/.claude/skills/clinician-first-cli-session/SKILL.md"
+          test -f "$RUNNER_TEMP/offcall-bundle-home/.agents/skills/clinician-first-cli-session/SKILL.md"
+          test ! -e "$RUNNER_TEMP/offcall-bundle-home/.agents/skills/safe-start"
